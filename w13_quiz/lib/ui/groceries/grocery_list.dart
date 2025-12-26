@@ -10,14 +10,13 @@ class GroceryList extends StatefulWidget {
   State<GroceryList> createState() => _GroceryListState();
 }
 
-class _GroceryListState extends State<GroceryList> {
+enum GroceryTap { shop, search }
 
+class _GroceryListState extends State<GroceryList> {
+  GroceryTap _currentTap = GroceryTap.shop;
   void onCreate() async {
     // Navigate to the form screen using the Navigator push
-    Grocery? newGrocery = await Navigator.push<Grocery>(
-      context,
-      MaterialPageRoute(builder: (context) => const GroceryForm()),
-    );
+    Grocery? newGrocery = await Navigator.push<Grocery>(context, MaterialPageRoute(builder: (context) => const GroceryForm()));
     if (newGrocery != null) {
       setState(() {
         dummyGroceryItems.add(newGrocery);
@@ -27,23 +26,36 @@ class _GroceryListState extends State<GroceryList> {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = const Center(child: Text('No items added yet.'));
+    // Widget content = const Center(child: Text('No items added yet.'));
 
-    if (dummyGroceryItems.isNotEmpty) {
-      //  Display groceries with an Item builder and  LIst Tile
-      content = ListView.builder(
-        itemCount: dummyGroceryItems.length,
-        itemBuilder: (context, index) =>
-            GroceryTile(grocery: dummyGroceryItems[index]),
-      );
-    }
+    // if (dummyGroceryItems.isNotEmpty) {
+    //   //  Display groceries with an Item builder and  LIst Tile
+    //   content = ListView.builder(
+    //     itemCount: dummyGroceryItems.length,
+    //     itemBuilder: (context, index) =>
+    //         GroceryTile(grocery: dummyGroceryItems[index]),
+    //   );
+    // }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Groceries'),
         actions: [IconButton(onPressed: onCreate, icon: const Icon(Icons.add))],
       ),
-      body: content,
+      body: IndexedStack(index: _currentTap.index, children: [MainList(), SearchField()]),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentTap.index,
+        selectedItemColor: Colors.green,
+        onTap: (index) {
+          setState(() {
+            _currentTap = GroceryTap.values[index];
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.local_grocery_store), label: 'Groceries'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+        ],
+      ),
     );
   }
 }
@@ -60,5 +72,59 @@ class GroceryTile extends StatelessWidget {
       title: Text(grocery.name),
       trailing: Text(grocery.quantity.toString()),
     );
+  }
+}
+
+class SearchField extends StatefulWidget {
+  const SearchField({super.key});
+
+  @override
+  State<SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<SearchField> {
+  String _searchText = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredGroceries = dummyGroceryItems.where((grocery) {
+      return grocery.name.toLowerCase().startsWith(_searchText.toLowerCase());
+    }).toList();
+
+    return Column(
+      children: [
+        TextField(
+          onChanged: (value) {
+            setState(() {
+              _searchText = value;
+            });
+          },
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: filteredGroceries.length,
+            itemBuilder: (context, index) => GroceryTile(grocery: filteredGroceries[index]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class MainList extends StatelessWidget {
+  const MainList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget content = const Center(child: Text('No items added yet.'));
+
+    if (dummyGroceryItems.isNotEmpty) {
+      //  Display groceries with an Item builder and  LIst Tile
+      content = ListView.builder(
+        itemCount: dummyGroceryItems.length,
+        itemBuilder: (context, index) => GroceryTile(grocery: dummyGroceryItems[index]),
+      );
+    }
+    return content;
   }
 }
